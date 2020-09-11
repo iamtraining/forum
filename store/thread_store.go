@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/iamtraining/forum-golang/entity"
+	"github.com/iamtraining/forum/entity"
 	"github.com/jmoiron/sqlx"
 )
 

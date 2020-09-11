@@ -3,7 +3,7 @@ package store
 import (
 	"fmt"
 
-	"github.com/iamtraining/forum-golang/entity"
+	"github.com/iamtraining/forum/entity"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // postgres driver
 )
@@ -15,7 +15,7 @@ type Store struct {
 }
 
 func NewStore(dSN string) (*Store, error) {
-	db, err := sqlx.Connect("postgres", dSN)
+	db, err := sqlx.Open("postgres", dSN)
 	if err != nil {
 		return nil, fmt.Errorf("failure while opening database: %w", err)
 	}
