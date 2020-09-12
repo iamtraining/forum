@@ -24,10 +24,6 @@ var (
 		"config", "configs/apiserver.toml",
 		"configuration file for the application",
 	)
-	debug = flag.Bool(
-		"debug", false,
-		"enable debug logging",
-	)
 )
 
 type Config struct {
@@ -67,7 +63,7 @@ func main() {
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-	fmt.Println("server stopping", "why", <-sig)
+	fmt.Println(" server stopping.", "why?", <-sig)
 
 	fmt.Println("goodbye")
 }

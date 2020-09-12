@@ -13,7 +13,7 @@ type CommentStore struct {
 }
 
 func (s *CommentStore) CreateComment(c *entity.ForumComment) error {
-	if err := s.Get(c, `INSERT INTO forum_comments VALUE ($1, $2, $3) RETURNING *`,
+	if err := s.Get(c, `INSERT INTO forum_comments VALUES ($1, $2, $3) RETURNING *`,
 		c.ID,
 		c.PostID,
 		c.Content,
@@ -26,7 +26,7 @@ func (s *CommentStore) CreateComment(c *entity.ForumComment) error {
 func (s *CommentStore) ReadComment(id uuid.UUID) (entity.ForumComment, error) {
 	var comm entity.ForumComment
 	if err := s.Get(&comm, `SELECT * FROM forum_comments WHERE id = $1`,
-		comm.ID,
+		id,
 	); err != nil {
 		return entity.ForumComment{}, fmt.Errorf("error while getting comment: %w", err)
 	}
@@ -35,14 +35,14 @@ func (s *CommentStore) ReadComment(id uuid.UUID) (entity.ForumComment, error) {
 
 func (s *CommentStore) ReadCommentsByPost(postID uuid.UUID) ([]entity.ForumComment, error) {
 	var comms []entity.ForumComment
-	if err := s.Get(&comms, `SELECT * FROM forum_comments where post_id = $1`, postID); err != nil {
+	if err := s.Select(&comms, `SELECT * FROM forum_comments WHERE post_id = $1`, postID); err != nil {
 		return []entity.ForumComment{}, fmt.Errorf("error while gettning comments: %w", err)
 	}
 	return comms, nil
 }
 
 func (s *CommentStore) UpdateComment(c *entity.ForumComment) error {
-	if err := s.Get(c, `UPDATE forum_comments SET post_id = $1, post_id = $2 WHERE id = $3 RETURNING *`,
+	if err := s.Get(c, `UPDATE forum_comments SET post_id = $1, content = $2 WHERE id = $3 RETURNING *`,
 		c.PostID,
 		c.Content,
 		c.ID); err != nil {
