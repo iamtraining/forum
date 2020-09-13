@@ -25,6 +25,12 @@ type ForumComment struct {
 	Content string    `db:"content"`
 }
 
+type User struct {
+	ID       uuid.UUID `db:"id"`
+	Username string    `db:"username"`
+	Password string    `db:"password"`
+}
+
 type ThreadStore interface {
 	Threads() ([]ForumThread, error)
 	CreateThread(t *ForumThread) error
@@ -49,8 +55,17 @@ type CommentStore interface {
 	DeleteComment(id uuid.UUID) error
 }
 
+type UserStore interface {
+	User(id uuid.UUID) (User, error)
+	GetUserByUsername(username string) (User, error)
+	Create(u *User) error
+	Update(u *User) error
+	Delete(id uuid.UUID) error
+}
+
 type Store interface {
 	ThreadStore
 	PostStore
 	CommentStore
+	UserStore
 }

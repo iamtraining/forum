@@ -12,6 +12,7 @@ type Store struct {
 	entity.ThreadStore
 	entity.PostStore
 	entity.CommentStore
+	entity.UserStore
 }
 
 func NewStore(dSN string) (*Store, error) {
@@ -27,5 +28,6 @@ func NewStore(dSN string) (*Store, error) {
 		ThreadStore:  &ThreadStore{DB: db},
 		PostStore:    &PostStore{DB: db},
 		CommentStore: &CommentStore{DB: db},
+		UserStore:    &UserStore{DB: db},
 	}, nil
 }

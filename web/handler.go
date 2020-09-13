@@ -3,12 +3,14 @@ package web
 import (
 	"github.com/gofiber/fiber"
 	"github.com/gofiber/fiber/middleware"
+	"github.com/gofiber/session"
 	"github.com/iamtraining/forum/store"
 )
 
 type Handler struct {
-	store store.Store
-	App   *fiber.App
+	store   store.Store
+	App     *fiber.App
+	Session *session.Session
 }
 
 func NewHandler(store *store.Store) *Handler {
@@ -20,8 +22,14 @@ func NewHandler(store *store.Store) *Handler {
 	threads := ThreadHandler{store: store}
 	posts := PostHandler{store: store}
 	comments := CommentHandler{store: store}
+	users := UserHandler{store: store}
 
 	h.App.Use(middleware.Logger())
+	h.App.Use(IsAuthed)
+
+	h.App.Post("/register", users.Register)
+	h.App.Post("/login", users.Login)
+	h.App.Post("logout", users.Logout)
 
 	routes := h.App.Group("/threads")
 	routes.Post("/", threads.getThread)
