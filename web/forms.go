@@ -5,6 +5,9 @@ import "encoding/gob"
 func init() {
 	gob.Register(CreateUserForm{})
 	gob.Register(LoginForm{})
+	gob.Register(CreateUserForm{})
+	gob.Register(CreatePostForm{})
+	gob.Register(CreateCommentForm{})
 }
 
 type Errors map[string]string
@@ -51,6 +54,58 @@ func (f *LoginForm) Validate() bool {
 
 	if f.Password == "" {
 		f.Err["password"] = "please enter password"
+	}
+
+	return len(f.Err) == 0
+}
+
+type CreatePostForm struct {
+	Title   string
+	Content string
+	Err     Errors
+}
+
+func (f *CreatePostForm) Validate() bool {
+	f.Err = Errors{}
+	if f.Title == "" {
+		f.Err["Title"] = "please enter a title"
+
+	}
+	if f.Content == "" {
+		f.Err["Content"] = "please enter a text"
+	}
+
+	return len(f.Err) == 0
+}
+
+type CreateThreadForm struct {
+	Title       string
+	Description string
+	Err         Errors
+}
+
+func (f *CreateThreadForm) Validate() bool {
+	f.Err = Errors{}
+	if f.Title == "" {
+		f.Err["Title"] = "please enter a title"
+
+	}
+	if f.Description == "" {
+		f.Err["Description"] = "please enter a description"
+	}
+
+	return len(f.Err) == 0
+}
+
+type CreateCommentForm struct {
+	Content string
+	Err     Errors
+}
+
+func (f *CreateCommentForm) Validate() bool {
+	f.Err = Errors{}
+	if f.Content == "" {
+		f.Err["Content"] = "please enter a comment"
 	}
 
 	return len(f.Err) == 0

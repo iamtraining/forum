@@ -14,25 +14,22 @@ type CommentHandler struct {
 }
 
 func (h *CommentHandler) createComment(c *fiber.Ctx) {
-	type data struct {
-		ID      string `json:"post_id"`
-		Content string `json:"content"`
-	}
-
-	var body data
-
-	err := c.BodyParser(&body)
+	id, err := uuid.Parse(c.Params("postID"))
 	if err != nil {
-		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "cannot parse request body",
+		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "cannot parse postID",
 		})
 		return
 	}
 
-	id, err := uuid.Parse(body.ID)
+	form := CreateCommentForm{
+		Content: `json:"content"`,
+	}
+
+	err = c.BodyParser(&form)
 	if err != nil {
-		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "cannot parse thread id",
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "cannot parse request body",
 		})
 		return
 	}
@@ -48,13 +45,13 @@ func (h *CommentHandler) createComment(c *fiber.Ctx) {
 	if err := h.store.CreateComment(&entity.ForumComment{
 		ID:      uuid.New(),
 		PostID:  post.ID,
-		Content: body.Content,
+		Content: form.Content,
 	}); err != nil {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": " failure while creating comment " + err.Error(),
 		})
 	} else {
-		c.Send("comment created")
+		c.Redirect(string(c.Fasthttp.Referer()), fiber.StatusFound)
 	}
 }
 

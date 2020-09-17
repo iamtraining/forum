@@ -105,10 +105,9 @@ func (h *UserHandler) Login(c *fiber.Ctx) {
 	}
 
 	st := s.Get(c)
-	check := st.Get("islogined")
-	if check == nil {
-		st.Set("islogined", true)
-		st.Save()
+	check, isLoggedin := st.Get("user_id").(uuid.UUID)
+	if !isLoggedin {
+		Login(c, check)
 		c.Status(fiber.StatusOK).JSON(fiber.Map{
 			"message": "you have been logged in successfully",
 		})
@@ -121,13 +120,5 @@ func (h *UserHandler) Login(c *fiber.Ctx) {
 }
 
 func (h *UserHandler) Logout(c *fiber.Ctx) {
-	store := s.Get(c)
-	store.Delete("islogined")
-	err := store.Save()
-	if err != nil {
-		panic(err)
-	}
-	c.ClearCookie()
-	c.Send("you are logged out")
-	return
+	Logout(c)
 }

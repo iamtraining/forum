@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+</head>
+
+<body>
+    <nav class="navbar navbar-light container">
+        <a class="navbar-brand text-primary" href="/">forum</a>
+    </nav>
+    <div class="header bg-light border-bottom border-top py-5">
+        <div class="container">
+			<h1 class="mb-0">{{.Thread.Title}}</h1>
+		</div>
+    </div>
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-xl-8 order-1 order-xl-0">
+				{{range .Posts}}
+                <div class="card mb-4">
+                    <div class="d-flex">
+                        <div class="card-body">
+                            <h5 class="card-title">{{.Title}}</h5>
+                            <p class="card-text">{{.Content}}</p>
+                            <a href="/threads/{{$.Thread.ID}}/{{.ID}}">{{.Count}} Comments</a>
+                        </div>
+                    </div>
+                </div>
+				{{end}}
+			</div>
+            <div class="col-xl-4 order-0 order-xl-1">
+				<div class="card mb-2">
+                    <div class="card-body">
+                        <h5 class="card-title">what is this tread about</h5>
+                        <p class="card-text">{{.Thread.Description}}</p>
+                        <a href="/threads/{{.Thread.ID}}/new" class="btn btn-primary btn-block">create post</a>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <form action="/threads/{{.Thread.ID}}/delete" method="POST">
+                        <button type="submit" class="text-danger btn-sm btn btn-link">delete this thread</button>
+                    </form>
+				</div>
+			</div>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -75,13 +75,11 @@ func (h *ThreadHandler) getThreads(ctx *fiber.Ctx) {
 }
 
 func (h *ThreadHandler) createThread(ctx *fiber.Ctx) {
-	type data struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
+	form := CreateThreadForm{
+		Title:       `json:"title"`,
+		Description: `json:"description"`,
 	}
-
-	var body data
-	err := ctx.BodyParser(&body)
+	err := ctx.BodyParser(&form)
 	if err != nil {
 		ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while parsing params to a struct",
@@ -91,15 +89,15 @@ func (h *ThreadHandler) createThread(ctx *fiber.Ctx) {
 
 	if err := h.store.CreateThread(&entity.ForumThread{
 		ID:          uuid.New(),
-		Title:       body.Title,
-		Description: body.Description,
+		Title:       form.Title,
+		Description: form.Description,
 	}); err != nil {
 		ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while creating thread",
 		})
-	} else {
-		ctx.Send("thread created")
 	}
+
+	ctx.Redirect("/threads", fiber.StatusFound)
 }
 
 func (h *ThreadHandler) updateThread(ctx *fiber.Ctx) {
@@ -167,21 +165,7 @@ func (h *ThreadHandler) updateThread(ctx *fiber.Ctx) {
 }
 
 func (h *ThreadHandler) deleteThread(ctx *fiber.Ctx) {
-	type data struct {
-		ID string `json"id"`
-	}
-
-	var body data
-
-	err := ctx.BodyParser(&body)
-	if err != nil {
-		ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failure while parsing params to a struct",
-		})
-		return
-	}
-
-	id, err := uuid.Parse(body.ID)
+	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {
 		ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse id",
@@ -194,6 +178,6 @@ func (h *ThreadHandler) deleteThread(ctx *fiber.Ctx) {
 			"error": "failure while delete thread",
 		})
 	} else {
-		ctx.Send("thread deleted")
+		ctx.Redirect("/threads", fiber.StatusFound)
 	}
 }

@@ -141,25 +141,22 @@ func (h *PostHandler) getPostsByThread(c *fiber.Ctx) {
 }
 
 func (h *PostHandler) createPost(c *fiber.Ctx) {
-	type data struct {
-		ID      string `json:"thread_id"`
-		Title   string `json:"title"`
-		Content string `json:"content"`
-	}
-
-	var body data
-	err := c.BodyParser(&body)
+	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "cannot parse request body",
+		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "cannot parse id",
 		})
 		return
 	}
 
-	id, err := uuid.Parse(body.ID)
+	form := CreatePostForm{
+		Title:   `json:"title"`,
+		Content: `json:"content"`,
+	}
+	err = c.BodyParser(&form)
 	if err != nil {
-		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "cannot parse thread id",
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "cannot parse request body",
 		})
 		return
 	}
@@ -172,20 +169,22 @@ func (h *PostHandler) createPost(c *fiber.Ctx) {
 		return
 	}
 
-	err = h.store.CreatePost(&entity.ForumPost{
+	post := &entity.ForumPost{
 		ID:       uuid.New(),
 		ThreadID: thread.ID,
-		Title:    body.Title,
-		Content:  body.Content,
-	})
+		Title:    form.Title,
+		Content:  form.Content,
+	}
+
+	err = h.store.CreatePost(post)
 	if err != nil {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": " failure while creating post",
 		})
 		return
-	} else {
-		c.Send("post created")
 	}
+
+	c.Redirect("/threads/"+thread.ID.String()+"/"+post.ID.String(), fiber.StatusFound)
 }
 
 func (h *PostHandler) deletePost(c *fiber.Ctx) {
