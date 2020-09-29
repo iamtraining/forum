@@ -1,2 +1,3 @@
 bind_addr=":3000"
 database_url="host=localhost dbname=iamtraining sslmode=disable"
+jwt_secret="SECRET_KEY"

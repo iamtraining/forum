@@ -3,7 +3,7 @@ package web
 import (
 	"encoding/json"
 
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/iamtraining/forum/entity"
 	"github.com/iamtraining/forum/store"
@@ -13,7 +13,7 @@ type PostHandler struct {
 	store *store.Store
 }
 
-func (h *PostHandler) getPost(c *fiber.Ctx) {
+func (h *PostHandler) getPost(c *fiber.Ctx) error {
 	type data struct {
 		ThreadID string `json:"thread_id"`
 		PostID   string `json:"post_id"`
@@ -26,7 +26,7 @@ func (h *PostHandler) getPost(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "cannot parse request body",
 		})
-		return
+		return nil
 	}
 
 	threadID, err := uuid.Parse(body.ThreadID)
@@ -34,7 +34,7 @@ func (h *PostHandler) getPost(c *fiber.Ctx) {
 		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse thread id",
 		})
-		return
+		return nil
 	}
 
 	postID, err := uuid.Parse(body.PostID)
@@ -42,7 +42,7 @@ func (h *PostHandler) getPost(c *fiber.Ctx) {
 		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse post id",
 		})
-		return
+		return nil
 	}
 
 	thread, err := h.store.ReadThread(threadID)
@@ -50,7 +50,7 @@ func (h *PostHandler) getPost(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while getting thread",
 		})
-		return
+		return nil
 	}
 
 	post, err := h.store.ReadPost(postID)
@@ -58,7 +58,7 @@ func (h *PostHandler) getPost(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while getting post",
 		})
-		return
+		return nil
 	}
 
 	comments, err := h.store.ReadCommentsByPost(post.ID)
@@ -66,7 +66,7 @@ func (h *PostHandler) getPost(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while getting comments " + err.Error(),
 		})
-		return
+		return nil
 	}
 
 	c.Status(fiber.StatusOK).JSON(fiber.Map{
@@ -87,15 +87,17 @@ func (h *PostHandler) getPost(c *fiber.Ctx) {
 			Comments: comments,
 		},
 	})
+
+	return nil
 }
 
-func (h *PostHandler) getPostsByThread(c *fiber.Ctx) {
+func (h *PostHandler) getPostsByThread(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse thread id",
 		})
-		return
+		return nil
 	}
 	/*type data struct {
 		ID string `json:"id"`
@@ -126,7 +128,7 @@ func (h *PostHandler) getPostsByThread(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "faulure while getting threads",
 		})
-		return
+		return nil
 	}
 
 	j, err := json.Marshal(&posts)
@@ -134,19 +136,19 @@ func (h *PostHandler) getPostsByThread(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while marshalling threads",
 		})
-		return
+		return nil
 	}
 
-	c.Send(j)
+	return c.Send(j)
 }
 
-func (h *PostHandler) createPost(c *fiber.Ctx) {
+func (h *PostHandler) createPost(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse id",
 		})
-		return
+		return nil
 	}
 
 	form := CreatePostForm{
@@ -158,7 +160,7 @@ func (h *PostHandler) createPost(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "cannot parse request body",
 		})
-		return
+		return nil
 	}
 
 	thread, err := h.store.ReadThread(id)
@@ -166,7 +168,7 @@ func (h *PostHandler) createPost(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while getting thread",
 		})
-		return
+		return nil
 	}
 
 	post := &entity.ForumPost{
@@ -181,13 +183,13 @@ func (h *PostHandler) createPost(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": " failure while creating post",
 		})
-		return
+		return nil
 	}
 
-	c.Redirect("/threads/"+thread.ID.String()+"/"+post.ID.String(), fiber.StatusFound)
+	return c.Redirect("/threads/"+thread.ID.String()+"/"+post.ID.String(), fiber.StatusFound)
 }
 
-func (h *PostHandler) deletePost(c *fiber.Ctx) {
+func (h *PostHandler) deletePost(c *fiber.Ctx) error {
 	type data struct {
 		PostID string `json:"id"`
 	}
@@ -199,7 +201,7 @@ func (h *PostHandler) deletePost(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "cannot parse request body",
 		})
-		return
+		return nil
 	}
 
 	id, err := uuid.Parse(body.PostID)
@@ -207,7 +209,7 @@ func (h *PostHandler) deletePost(c *fiber.Ctx) {
 		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse post id",
 		})
-		return
+		return nil
 	}
 
 	if err = h.store.DeletePost(id); err != nil {
@@ -215,12 +217,14 @@ func (h *PostHandler) deletePost(c *fiber.Ctx) {
 			"error": "failure while deleting post",
 		})
 	} else {
-		c.Send("post deleted")
+		c.Send([]byte("post deleted"))
 	}
+
+	return nil
 
 }
 
-func (h *PostHandler) updatePost(c *fiber.Ctx) {
+func (h *PostHandler) updatePost(c *fiber.Ctx) error {
 	type data struct {
 		ID      string `json:"post_id"`
 		Title   string `json:"title"`
@@ -234,7 +238,7 @@ func (h *PostHandler) updatePost(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while parsing params to a struct",
 		})
-		return
+		return nil
 	}
 
 	id, err := uuid.Parse(body.ID)
@@ -242,7 +246,7 @@ func (h *PostHandler) updatePost(c *fiber.Ctx) {
 		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse id",
 		})
-		return
+		return nil
 	}
 
 	post, err := h.store.ReadPost(id)
@@ -250,14 +254,14 @@ func (h *PostHandler) updatePost(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while getting post",
 		})
-		return
+		return nil
 	}
 
 	if body.Title == "" && body.Content == "" {
 		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "you didnt fill the required fields(title and content)",
 		})
-		return
+		return nil
 	}
 
 	if body.Title == "" && body.Content != "" {
@@ -278,8 +282,10 @@ func (h *PostHandler) updatePost(c *fiber.Ctx) {
 			c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "failure while marshalling post",
 			})
-			return
+			return nil
 		}
-		c.Send("post updated " + string(j))
+		c.Send(j)
 	}
+
+	return nil
 }

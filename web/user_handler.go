@@ -1,7 +1,7 @@
 package web
 
 import (
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/iamtraining/forum/entity"
 	"github.com/iamtraining/forum/store"
@@ -12,7 +12,7 @@ type UserHandler struct {
 	store *store.Store
 }
 
-func (h *UserHandler) Register(c *fiber.Ctx) {
+func (h *UserHandler) Register(c *fiber.Ctx) error {
 	type data struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
@@ -24,7 +24,7 @@ func (h *UserHandler) Register(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while parsing params to a struct",
 		})
-		return
+		return nil
 	}
 
 	form := CreateUserForm{
@@ -38,15 +38,14 @@ func (h *UserHandler) Register(c *fiber.Ctx) {
 	}
 
 	if !form.Validate() {
-		st := s.Get(c)
-		st.Set("form", form)
-		return
+		c.Locals("form", form)
+		return c.Send([]byte("invalid params"))
 	}
 
 	password, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.Status(fiber.StatusInternalServerError)
-		return
+		return nil
 	}
 
 	if err := h.store.Create(&entity.User{
@@ -55,17 +54,21 @@ func (h *UserHandler) Register(c *fiber.Ctx) {
 		Password: string(password),
 	}); err != nil {
 		c.Status(fiber.StatusInternalServerError)
-		return
+		return nil
 	}
 
-	c.Status(fiber.StatusOK).JSON(fiber.Map{
+	return c.Redirect("/", fiber.StatusFound)
+
+	/*c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message":  "your registration was successful. please log in",
 		"username": form.Username,
 		"password": form.Password,
 	})
+	*/
+
 }
 
-func (h *UserHandler) Login(c *fiber.Ctx) {
+func (h *UserHandler) Login(c *fiber.Ctx) error {
 	type data struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
@@ -77,7 +80,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while parsing params to a struct",
 		})
-		return
+		return nil
 	}
 
 	form := LoginForm{
@@ -87,9 +90,8 @@ func (h *UserHandler) Login(c *fiber.Ctx) {
 	}
 
 	if !form.Validate() {
-		st := s.Get(c)
-		st.Set("form", form)
-		return
+		c.Locals("form", form)
+		return c.Send([]byte("invalid params"))
 	}
 
 	user, err := h.store.GetUserByUsername(form.Username)
@@ -104,21 +106,31 @@ func (h *UserHandler) Login(c *fiber.Ctx) {
 		form.IncorrectCredentials = pwErr != nil
 	}
 
-	st := s.Get(c)
-	check, isLoggedin := st.Get("user_id").(uuid.UUID)
-	if !isLoggedin {
-		Login(c, check)
-		c.Status(fiber.StatusOK).JSON(fiber.Map{
-			"message": "you have been logged in successfully",
-		})
-	} else {
-		c.Status(fiber.StatusOK).JSON(fiber.Map{
-			"message": "you are already logged in",
-		})
-	}
+	//fmt.Printf("%v\n%v\n%v\n", user.ID, user.Username, user.Password)
 
+	token, err := Login(c, user.ID, []byte("SECREY_KEY"))
+	if err != nil {
+		c.SendStatus(401)
+		c.JSON(fiber.Map{
+			"error":   true,
+			"message": err.Error() + " 4",
+		})
+		return nil
+	}
+	c.JSON(fiber.Map{
+		"token":      token.Hash,
+		"expires_in": token.Expire,
+	})
+
+	/*c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "you have been logged in successfully",
+	})
+	*/
+	return c.Redirect("/", fiber.StatusFound)
 }
 
-func (h *UserHandler) Logout(c *fiber.Ctx) {
+func (h *UserHandler) Logout(c *fiber.Ctx) error {
 	Logout(c)
+
+	return c.Redirect("/", fiber.StatusFound)
 }

@@ -3,7 +3,7 @@ package web
 import (
 	"encoding/json"
 
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/iamtraining/forum/entity"
 	"github.com/iamtraining/forum/store"
@@ -13,13 +13,13 @@ type CommentHandler struct {
 	store *store.Store
 }
 
-func (h *CommentHandler) createComment(c *fiber.Ctx) {
+func (h *CommentHandler) createComment(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("postID"))
 	if err != nil {
 		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse postID",
 		})
-		return
+		return nil
 	}
 
 	form := CreateCommentForm{
@@ -31,7 +31,7 @@ func (h *CommentHandler) createComment(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "cannot parse request body",
 		})
-		return
+		return nil
 	}
 
 	post, err := h.store.ReadPost(id)
@@ -39,7 +39,7 @@ func (h *CommentHandler) createComment(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while getting post",
 		})
-		return
+		return nil
 	}
 
 	if err := h.store.CreateComment(&entity.ForumComment{
@@ -51,11 +51,12 @@ func (h *CommentHandler) createComment(c *fiber.Ctx) {
 			"error": " failure while creating comment " + err.Error(),
 		})
 	} else {
-		c.Redirect(string(c.Fasthttp.Referer()), fiber.StatusFound)
+		c.Redirect("", fiber.StatusFound)
 	}
+	return nil
 }
 
-func (h *CommentHandler) deleteComment(c *fiber.Ctx) {
+func (h *CommentHandler) deleteComment(c *fiber.Ctx) error {
 	type data struct {
 		ID string `json:"comment_id"`
 	}
@@ -67,7 +68,7 @@ func (h *CommentHandler) deleteComment(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "cannot parse request body",
 		})
-		return
+		return nil
 	}
 
 	id, err := uuid.Parse(body.ID)
@@ -75,7 +76,7 @@ func (h *CommentHandler) deleteComment(c *fiber.Ctx) {
 		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse comment id",
 		})
-		return
+		return nil
 	}
 
 	if err = h.store.DeleteComment(id); err != nil {
@@ -83,11 +84,12 @@ func (h *CommentHandler) deleteComment(c *fiber.Ctx) {
 			"error": "failure while deleting post " + err.Error(),
 		})
 	} else {
-		c.Send("comment deleted")
+		c.Send([]byte("comment deleted"))
 	}
+	return nil
 }
 
-func (h *CommentHandler) updateComment(c *fiber.Ctx) {
+func (h *CommentHandler) updateComment(c *fiber.Ctx) error {
 	type data struct {
 		ID      string `json:"comment_id"`
 		Content string `json:"content"`
@@ -100,7 +102,7 @@ func (h *CommentHandler) updateComment(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while parsing params to a struct",
 		})
-		return
+		return nil
 	}
 
 	id, err := uuid.Parse(body.ID)
@@ -108,7 +110,7 @@ func (h *CommentHandler) updateComment(c *fiber.Ctx) {
 		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse id",
 		})
-		return
+		return nil
 	}
 
 	comment, err := h.store.ReadComment(id)
@@ -116,14 +118,14 @@ func (h *CommentHandler) updateComment(c *fiber.Ctx) {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while getting comment " + err.Error(),
 		})
-		return
+		return nil
 	}
 
 	if body.Content == "" {
 		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "you didnt fill the required fields(content)",
 		})
-		return
+		return nil
 	}
 
 	if body.Content != "" {
@@ -140,8 +142,10 @@ func (h *CommentHandler) updateComment(c *fiber.Ctx) {
 			c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "failure while marshalling comment",
 			})
-			return
+			return nil
 		}
-		c.Send("comment updated " + string(j))
+		c.Send(j)
 	}
+
+	return nil
 }

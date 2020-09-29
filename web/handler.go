@@ -1,10 +1,13 @@
 package web
 
 import (
-	"github.com/gofiber/fiber"
-	"github.com/gofiber/fiber/middleware"
+	"os"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/session"
 	"github.com/gofiber/template/html"
+	"github.com/iamtraining/forum/auth"
 	"github.com/iamtraining/forum/store"
 )
 
@@ -15,10 +18,12 @@ type Handler struct {
 }
 
 func NewHandler(store *store.Store) *Handler {
+	engine := html.New("./templates/", ".html")
+
 	h := &Handler{
 		store: *store,
-		App: fiber.New(&fiber.Settings{
-			Views: html.New("./templates/", ".html"),
+		App: fiber.New(fiber.Config{
+			Views: engine,
 		}),
 	}
 
@@ -27,21 +32,33 @@ func NewHandler(store *store.Store) *Handler {
 	comments := CommentHandler{store: store}
 	users := UserHandler{store: store}
 
-	h.App.Use(middleware.Logger())
-	h.App.Use(h.IsLoggedIn)
-	//h.App.Use(csrf.New())
+	h.App.Use(logger.New(logger.Config{
+		Next:       nil,
+		Format:     "[${time}] ${status} - ${latency} - ${method} ${path}\n",
+		TimeFormat: "2006-01-02 15:04:05",
+		TimeZone:   "Local",
+		Output:     os.Stderr,
+	}))
 
-	/*h.App.Get("/", func(c *fiber.Ctx) {
-		c.Send(c.Locals("csrf"))
-	})
-	*/
+	web := h.App.Group("")
 
-	h.App.Get("/", h.Home())
-	h.App.Post("/register", users.Register)
-	h.App.Post("/login", users.Login)
-	h.App.Post("/logout", users.Logout)
-	h.App.Get("/login", h.LoginPage())
-	h.App.Get("/register", h.RegisterPage())
+	h.App.Use(auth.Authentificate(auth.AuthSettings{
+		Key: []byte("SECREY_KEY"),
+		TFR: "cookie:forum-Token",
+		Error: func(c *fiber.Ctx, err error) {
+			Logout(c)
+			c.Next()
+			return
+		},
+	}))
+
+	web.Get("/", h.Home())
+	web.Post("/register", users.Register)
+	web.Post("/login", users.Login)
+	web.Get("/logout", users.Logout)
+	web.Get("/login", h.LoginPage())
+	web.Get("/register", h.RegisterPage())
+
 	h.App.Post("/thread/:id/delete", threads.deleteThread)
 
 	routes := h.App.Group("/threads")

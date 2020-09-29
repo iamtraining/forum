@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -32,6 +34,7 @@ type Config struct {
 }
 
 var (
+	quit   = make(chan os.Signal, 1)
 	config Config
 )
 
@@ -53,7 +56,7 @@ func main() {
 	h := web.NewHandler(store)
 
 	go func() {
-		if err := h.App.Listen(*address); err != nil {
+		if err := h.App.Listen(*address); err != nil && err != http.ErrServerClosed {
 			fmt.Println("server error " + err.Error())
 		}
 	}()
@@ -61,9 +64,15 @@ func main() {
 	time.Sleep(time.Millisecond * 100)
 	log.Info("server started")
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-	fmt.Println(" server stopping.", "why?", <-sig)
+	_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	fmt.Println(" server stopping.", "why?", <-quit)
+
+	if err := h.App.Shutdown(); err != nil {
+		fmt.Println(err.Error())
+	}
 
 	fmt.Println("goodbye")
 }
