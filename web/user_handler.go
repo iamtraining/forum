@@ -1,15 +1,24 @@
 package web
 
 import (
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/session/v2"
 	"github.com/google/uuid"
 	"github.com/iamtraining/forum/entity"
 	"github.com/iamtraining/forum/store"
 	"golang.org/x/crypto/bcrypt"
 )
 
+var sessions *session.Session
+
 type UserHandler struct {
 	store *store.Store
+}
+
+func init() {
+	sessions = session.New()
 }
 
 func (h *UserHandler) Register(c *fiber.Ctx) error {
@@ -68,7 +77,7 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 
 }
 
-func (h *UserHandler) Login(c *fiber.Ctx) error {
+func (h *UserHandler) PrepareLogin(c *fiber.Ctx) error {
 	type data struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
@@ -106,26 +115,24 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 		form.IncorrectCredentials = pwErr != nil
 	}
 
-	//fmt.Printf("%v\n%v\n%v\n", user.ID, user.Username, user.Password)
+	c.Locals("user", user)
 
-	token, err := Login(c, user.ID, []byte("SECREY_KEY"))
+	return c.Next()
+}
+
+func (h *UserHandler) CommitLogin(c *fiber.Ctx) error {
+	user := c.Locals("user").(entity.User)
+
+	t, err := Login(c, user.ID, []byte("SECRET_KEY"))
 	if err != nil {
-		c.SendStatus(401)
-		c.JSON(fiber.Map{
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   true,
-			"message": err.Error() + " 4",
+			"message": "commit login error",
 		})
-		return nil
 	}
-	c.JSON(fiber.Map{
-		"token":      token.Hash,
-		"expires_in": token.Expire,
-	})
 
-	/*c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "you have been logged in successfully",
-	})
-	*/
+	fmt.Println("login t", t)
+
 	return c.Redirect("/", fiber.StatusFound)
 }
 

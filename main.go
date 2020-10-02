@@ -53,7 +53,7 @@ func main() {
 		panic(err)
 	}
 
-	h := web.NewHandler(store)
+	h := web.NewHandler(store, config.App)
 
 	go func() {
 		if err := h.App.Listen(*address); err != nil && err != http.ErrServerClosed {

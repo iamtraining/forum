@@ -5,9 +5,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/session"
+	"github.com/gofiber/session/v2"
 	"github.com/gofiber/template/html"
-	"github.com/iamtraining/forum/auth"
+	"github.com/iamtraining/forum/apiserver"
 	"github.com/iamtraining/forum/store"
 )
 
@@ -17,7 +17,7 @@ type Handler struct {
 	Session *session.Session
 }
 
-func NewHandler(store *store.Store) *Handler {
+func NewHandler(store *store.Store, cfg apiserver.Config) *Handler {
 	engine := html.New("./templates/", ".html")
 
 	h := &Handler{
@@ -42,21 +42,11 @@ func NewHandler(store *store.Store) *Handler {
 
 	web := h.App.Group("")
 
-	h.App.Use(auth.Authentificate(auth.AuthSettings{
-		Key: []byte("SECREY_KEY"),
-		TFR: "cookie:forum-Token",
-		Error: func(c *fiber.Ctx, err error) {
-			Logout(c)
-			c.Next()
-			return
-		},
-	}))
-
 	web.Get("/", h.Home())
-	web.Post("/register", users.Register)
-	web.Post("/login", users.Login)
-	web.Get("/logout", users.Logout)
+	web.Post("/login", users.PrepareLogin, users.CommitLogin)
 	web.Get("/login", h.LoginPage())
+	web.Post("/register", users.Register)
+	web.Get("/logout", users.Logout)
 	web.Get("/register", h.RegisterPage())
 
 	h.App.Post("/thread/:id/delete", threads.deleteThread)
