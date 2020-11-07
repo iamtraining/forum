@@ -1,6 +1,8 @@
 package web
 
-import "encoding/gob"
+import (
+	"encoding/gob"
+)
 
 func init() {
 	gob.Register(CreateUserForm{})
@@ -67,11 +69,11 @@ type CreatePostForm struct {
 
 func (f *CreatePostForm) Validate() bool {
 	f.Err = Errors{}
-	if f.Title == "" {
+	if f.Title == `json:"title"` {
 		f.Err["Title"] = "please enter a title"
 
 	}
-	if f.Content == "" {
+	if f.Content == `json:"content"` {
 		f.Err["Content"] = "please enter a text"
 	}
 
@@ -86,11 +88,11 @@ type CreateThreadForm struct {
 
 func (f *CreateThreadForm) Validate() bool {
 	f.Err = Errors{}
-	if f.Title == "" {
+	if f.Title == `json:"title"` {
 		f.Err["Title"] = "please enter a title"
 
 	}
-	if f.Description == "" {
+	if f.Description == `json:"description"` {
 		f.Err["Description"] = "please enter a description"
 	}
 
@@ -104,7 +106,7 @@ type CreateCommentForm struct {
 
 func (f *CreateCommentForm) Validate() bool {
 	f.Err = Errors{}
-	if f.Content == "" {
+	if f.Content == `json:"content"` {
 		f.Err["Content"] = "please enter a comment"
 	}
 

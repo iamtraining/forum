@@ -48,7 +48,7 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 
 	if !form.Validate() {
 		c.Locals("form", form)
-		return c.Send([]byte("invalid params"))
+		return c.Redirect("/register", fiber.StatusFound)
 	}
 
 	password, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
@@ -98,22 +98,24 @@ func (h *UserHandler) PrepareLogin(c *fiber.Ctx) error {
 		IncorrectCredentials: false,
 	}
 
-	if !form.Validate() {
-		c.Locals("form", form)
-		return c.Send([]byte("invalid params"))
-	}
-
 	user, err := h.store.GetUserByUsername(form.Username)
 	if err != nil {
 		form.IncorrectCredentials = true
-
+		fmt.Println("invalid credentials")
 		c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": form.Err,
 		})
 	} else {
 		pwErr := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(form.Password))
 		form.IncorrectCredentials = pwErr != nil
+		fmt.Println("valid credentials")
 	}
+
+	if !form.Validate() {
+		c.Locals("form", form)
+		return c.Redirect("/login", fiber.StatusFound)
+	}
+	fmt.Println(form)
 
 	c.Locals("user", user)
 

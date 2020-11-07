@@ -14,7 +14,8 @@ type CommentHandler struct {
 }
 
 func (h *CommentHandler) createComment(c *fiber.Ctx) error {
-	id, err := uuid.Parse(c.Params("postID"))
+	idstr := c.Params("postID")
+	id, err := uuid.Parse(idstr)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse postID",
@@ -34,6 +35,10 @@ func (h *CommentHandler) createComment(c *fiber.Ctx) error {
 		return nil
 	}
 
+	if !form.Validate() {
+		return c.Redirect(c.Request().URI().String(), fiber.StatusFound)
+	}
+
 	post, err := h.store.ReadPost(id)
 	if err != nil {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -51,7 +56,7 @@ func (h *CommentHandler) createComment(c *fiber.Ctx) error {
 			"error": " failure while creating comment " + err.Error(),
 		})
 	} else {
-		c.Redirect("", fiber.StatusFound)
+		return c.Redirect("/threads/"+post.ThreadID.String()+"/"+idstr, fiber.StatusFound)
 	}
 	return nil
 }

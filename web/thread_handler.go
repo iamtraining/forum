@@ -13,15 +13,15 @@ type ThreadHandler struct {
 	store *store.Store
 }
 
-func (h *ThreadHandler) getThread(ctx *fiber.Ctx) error {
+func (h *ThreadHandler) getThread(c *fiber.Ctx) error {
 	type data struct {
 		ID string `json:"id"`
 	}
 
 	var body data
-	err := ctx.BodyParser(&body)
+	err := c.BodyParser(&body)
 	if err != nil {
-		ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while parsing params to a struct",
 		})
 		return nil
@@ -29,7 +29,7 @@ func (h *ThreadHandler) getThread(ctx *fiber.Ctx) error {
 
 	id, err := uuid.Parse(body.ID)
 	if err != nil {
-		ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse id",
 		})
 		return nil
@@ -37,7 +37,7 @@ func (h *ThreadHandler) getThread(ctx *fiber.Ctx) error {
 
 	thread, err := h.store.ReadThread(id)
 	if err != nil {
-		ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while getting thread",
 		})
 		return nil
@@ -45,13 +45,13 @@ func (h *ThreadHandler) getThread(ctx *fiber.Ctx) error {
 
 	j, err := json.Marshal(&thread)
 	if err != nil {
-		ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while marshalling thread",
 		})
 		return nil
 	}
 
-	return ctx.Send(j)
+	return c.Send(j)
 }
 
 func (h *ThreadHandler) getThreads(ctx *fiber.Ctx) error {
@@ -74,17 +74,23 @@ func (h *ThreadHandler) getThreads(ctx *fiber.Ctx) error {
 	return ctx.Send(j)
 }
 
-func (h *ThreadHandler) createThread(ctx *fiber.Ctx) error {
+func (h *ThreadHandler) createThread(c *fiber.Ctx) error {
 	form := CreateThreadForm{
 		Title:       `json:"title"`,
 		Description: `json:"description"`,
 	}
-	err := ctx.BodyParser(&form)
+
+	err := c.BodyParser(&form)
 	if err != nil {
-		ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while parsing params to a struct",
 		})
 		return nil
+	}
+
+	if !form.Validate() {
+		c.Locals("form", form)
+		return c.Redirect("threads/new", fiber.StatusFound)
 	}
 
 	if err := h.store.CreateThread(&entity.ForumThread{
@@ -92,15 +98,15 @@ func (h *ThreadHandler) createThread(ctx *fiber.Ctx) error {
 		Title:       form.Title,
 		Description: form.Description,
 	}); err != nil {
-		ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while creating thread",
 		})
 	}
 
-	return ctx.Redirect("/threads", fiber.StatusFound)
+	return c.Redirect("/threads", fiber.StatusFound)
 }
 
-func (h *ThreadHandler) updateThread(ctx *fiber.Ctx) error {
+func (h *ThreadHandler) updateThread(c *fiber.Ctx) error {
 	type data struct {
 		ID          string `json:"id"`
 		Title       string `json:"title,omitempty"`
@@ -109,9 +115,9 @@ func (h *ThreadHandler) updateThread(ctx *fiber.Ctx) error {
 
 	var body data
 
-	err := ctx.BodyParser(&body)
+	err := c.BodyParser(&body)
 	if err != nil {
-		ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while parsing params to a struct",
 		})
 		return nil
@@ -119,7 +125,7 @@ func (h *ThreadHandler) updateThread(ctx *fiber.Ctx) error {
 
 	id, err := uuid.Parse(body.ID)
 	if err != nil {
-		ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse id",
 		})
 		return nil
@@ -127,14 +133,14 @@ func (h *ThreadHandler) updateThread(ctx *fiber.Ctx) error {
 
 	curr, err := h.store.ReadThread(id)
 	if err != nil {
-		ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while getting thread",
 		})
 		return nil
 	}
 
 	if body.Title == "" && body.Description == "" {
-		ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "you didnt fill the required fields(title and description)",
 		})
 		return nil
@@ -149,38 +155,38 @@ func (h *ThreadHandler) updateThread(ctx *fiber.Ctx) error {
 	}
 
 	if err := h.store.UpdateThread(&curr); err != nil {
-		ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while updating thread",
 		})
 	} else {
 		j, err := json.Marshal(&curr)
 		if err != nil {
-			ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "failure while marshalling threads",
 			})
 			return nil
 		}
-		ctx.Send(j)
+		c.Send(j)
 	}
 
 	return nil
 }
 
-func (h *ThreadHandler) deleteThread(ctx *fiber.Ctx) error {
-	id, err := uuid.Parse(ctx.Params("id"))
+func (h *ThreadHandler) deleteThread(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse id",
 		})
 		return nil
 	}
 
 	if err = h.store.DeleteThread(id); err != nil {
-		ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failure while delete thread",
 		})
 	} else {
-		ctx.Redirect("/threads", fiber.StatusFound)
+		c.Redirect("/threads", fiber.StatusFound)
 	}
 
 	return nil

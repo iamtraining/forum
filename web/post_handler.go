@@ -143,7 +143,8 @@ func (h *PostHandler) getPostsByThread(c *fiber.Ctx) error {
 }
 
 func (h *PostHandler) createPost(c *fiber.Ctx) error {
-	id, err := uuid.Parse(c.Params("id"))
+	idstr := c.Params("id")
+	id, err := uuid.Parse(idstr)
 	if err != nil {
 		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse id",
@@ -161,6 +162,10 @@ func (h *PostHandler) createPost(c *fiber.Ctx) error {
 			"error": "cannot parse request body",
 		})
 		return nil
+	}
+
+	if !form.Validate() {
+		return c.Redirect("/threads/" + idstr + "/new")
 	}
 
 	thread, err := h.store.ReadThread(id)
